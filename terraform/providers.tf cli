@@ -1,0 +1,17 @@
+provider "azurerm" {
+  features {}
+  tenant_id            = var.spec.tenant_id
+  subscription_id      = var.spec.subscription_id
+  use_cli              = true
+}
+
+provider "azuread" {
+  tenant_id            = var.spec.tenant_id
+  use_cli              = true
+}
+
+provider "azapi" {
+  tenant_id            = var.spec.tenant_id
+  subscription_id      = var.spec.subscription_id
+  use_cli              = true
+}

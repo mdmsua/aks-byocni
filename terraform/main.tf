@@ -184,16 +184,29 @@ resource "azurerm_kubernetes_cluster" "main" {
     balance_similar_node_groups = true
   }
 
-  provisioner "local-exec" {
-    command = "az aks update -g ${azurerm_resource_group.main.name} -n ${azurerm_kubernetes_cluster.main.name} --subscription ${var.spec.subscription_id} --kube-proxy-config ${path.module}/files/kube-proxy.json -o none"
-  }
-
   lifecycle {
     ignore_changes = [
       network_profile.0.pod_cidrs,
       network_profile.0.service_cidrs
     ]
   }
+}
+
+resource "azapi_update_resource" "kube_proxy" {
+  type        = "Microsoft.ContainerService/managedClusters@2023-08-02-preview"
+  resource_id = azurerm_kubernetes_cluster.main.id
+
+  body = jsonencode({
+    properties = {
+      networkProfile = {
+        kubeProxyConfig = {
+          enabled = false
+        }
+      }
+    }
+  })
+
+  depends_on = [azurerm_kubernetes_cluster.main]
 }
 
 resource "azurerm_kubernetes_cluster_node_pool" "main" {
