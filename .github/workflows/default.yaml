@@ -1,0 +1,53 @@
+name: Deploy AKS BYOCNI
+
+permissions:
+    id-token: write
+    contents: read
+
+on:
+    workflow_dispatch:
+      inputs:
+        overlay:
+          description: Overlay name
+          required: true
+          default: cilium
+
+env:
+    TF_INPUT: 0
+    TF_IN_AUTOMATION: 1
+    TF_CLOUD_ORGANIZATION: Exatron
+    TF_API_TOKEN: ${{ secrets.TFC_TOKEN }}
+
+jobs:
+    default:
+        name: Deploy AKS BYOCNI
+        runs-on: ubuntu-latest
+        steps:
+        - name: Checkout source
+          uses: actions/checkout@v4
+          with:
+            sparse-checkout: |
+                terraform
+        - name: Checkout config
+          uses: actions/checkout@v4
+          with:
+            repository: mdmsua/aks-cfg
+            ref: main
+            path: cfg
+        - name: Create variables file
+          run:  kubectl kustomize ./overlays/$OVERLAY | yq 'del(.kind)|del(.metadata)' -o json > ../terraform/terraform.tfvars.json
+          env:
+            OVERLAY: ${{ inputs.overlay }}
+          working-directory: ./cfg
+        - uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.2.0
+          id: upload
+          with:
+            workspace: ${{ inputs.overlay }}
+            directory: ./terraform
+        - name: Create run
+          uses: hashicorp/tfc-workflows-github/actions/create-run@v1.2.0
+          id: run
+          with:
+            workspace: ${{ inputs.overlay }}
+            message: ${{ github.run_id }}
+            configuration_version: ${{ steps.upload.outputs.configuration_version_id }}
