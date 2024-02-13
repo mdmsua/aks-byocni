@@ -54,25 +54,23 @@ resource "azurerm_subnet" "main" {
 }
 
 resource "azurerm_public_ip_prefix" "ipv4" {
-  for_each            = var.spec.zones
-  name                = "${module.naming.public_ip_prefix.name}-ipv4-zone-${each.value}"
+  name                = "${module.naming.public_ip_prefix.name}-ipv4"
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
   ip_version          = "IPv4"
   sku                 = "Standard"
   prefix_length       = 28
-  zones               = [each.value]
+  zones               = var.spec.zones
 }
 
 resource "azurerm_public_ip_prefix" "ipv6" {
-  for_each            = var.spec.zones
-  name                = "${module.naming.public_ip_prefix.name}-ipv6-zone-${each.value}"
+  name                = "${module.naming.public_ip_prefix.name}-ipv6"
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
   ip_version          = "IPv6"
   sku                 = "Standard"
   prefix_length       = 124
-  zones               = [each.value]
+  zones               = var.spec.zones
 }
 
 resource "azurerm_user_assigned_identity" "cluster" {
@@ -133,11 +131,11 @@ resource "azurerm_kubernetes_cluster" "main" {
 
     load_balancer_profile {
       idle_timeout_in_minutes  = 4
-      outbound_ports_allocated = min(length(var.spec.zones) * 16 * 64000 / local.max_node_count, 64000)
-      outbound_ip_prefix_ids = concat(
-        [for zone in var.spec.zones : azurerm_public_ip_prefix.ipv4[zone].id],
-        [for zone in var.spec.zones : azurerm_public_ip_prefix.ipv6[zone].id],
-      )
+      outbound_ports_allocated = min(16 * 64000 / local.max_node_count, 64000)
+      outbound_ip_prefix_ids = [
+        azurerm_public_ip_prefix.ipv4.id,
+        azurerm_public_ip_prefix.ipv6.id
+      ]
     }
   }
 
@@ -192,23 +190,6 @@ resource "azurerm_kubernetes_cluster" "main" {
   }
 }
 
-resource "azapi_update_resource" "kube_proxy" {
-  type        = "Microsoft.ContainerService/managedClusters@2023-08-02-preview"
-  resource_id = azurerm_kubernetes_cluster.main.id
-
-  body = jsonencode({
-    properties = {
-      networkProfile = {
-        kubeProxyConfig = {
-          enabled = false
-        }
-      }
-    }
-  })
-
-  depends_on = [azurerm_kubernetes_cluster.main]
-}
-
 resource "azurerm_kubernetes_cluster_node_pool" "main" {
   for_each              = local.node_pools
   name                  = each.key
@@ -234,4 +215,24 @@ resource "azurerm_role_assignment" "cluster_admin_user_role" {
   scope                = azurerm_kubernetes_cluster.main.id
   principal_id         = azuread_group.main.object_id
   role_definition_name = "Azure Kubernetes Service Cluster User Role"
+}
+
+resource "azapi_update_resource" "kube_proxy" {
+  type        = "Microsoft.ContainerService/managedClusters@2023-08-02-preview"
+  resource_id = azurerm_kubernetes_cluster.main.id
+
+  body = jsonencode({
+    properties = {
+      networkProfile = {
+        kubeProxyConfig = {
+          enabled = false
+        }
+      }
+    }
+  })
+
+  depends_on = [
+    azurerm_kubernetes_cluster.main,
+    azurerm_kubernetes_cluster_node_pool.main
+  ]
 }
