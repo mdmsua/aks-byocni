@@ -39,6 +39,9 @@ jobs:
           env:
             OVERLAY: ${{ inputs.overlay }}
           working-directory: ./cfg
+        - name: COnfigure authorization
+          run: |
+            mv ./terraform/providers.tf.tfc ./terraform/providers.tf
         - uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.2.0
           id: upload
           with:
