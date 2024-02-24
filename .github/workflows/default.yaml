@@ -39,18 +39,19 @@ jobs:
           env:
             OVERLAY: ${{ inputs.overlay }}
           working-directory: ./cfg
-        - name: COnfigure authorization
+        - name: Configure authorization
           run: |
-            mv ./terraform/providers.tf.tfc ./terraform/providers.tf
+            mv ./providers.tf.tfc ./providers.tf
+          working-directory: ./terraform
         - uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.2.0
           id: upload
           with:
-            workspace: ${{ inputs.overlay }}
+            workspace: byocni-${{ inputs.overlay }}
             directory: ./terraform
         - name: Create run
           uses: hashicorp/tfc-workflows-github/actions/create-run@v1.2.0
           id: run
           with:
-            workspace: ${{ inputs.overlay }}
+            workspace: byocni-${{ inputs.overlay }}
             message: ${{ github.run_id }}
             configuration_version: ${{ steps.upload.outputs.configuration_version_id }}
