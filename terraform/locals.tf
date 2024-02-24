@@ -6,5 +6,5 @@ locals {
   }) }
   ipv6_mask_bits = 64 - tonumber(split("/", var.spec.virtual_network.address_space.1).1)
   max_node_count = var.spec.cluster.default_node_pool.max_count + sum(var.spec.cluster.node_pools[*].max_count) * length(var.spec.zones)
-  cluster_admins = setunion(var.spec.cluster.admins, [azurerm_user_assigned_identity.cluster_admin.principal_id])
+  cluster_admins = tolist(setunion(var.spec.cluster.admins, [azurerm_user_assigned_identity.cluster_admin.principal_id]))
 }
