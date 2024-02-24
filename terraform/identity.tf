@@ -46,7 +46,7 @@ resource "azuread_group" "main" {
 }
 
 resource "azuread_group_member" "main" {
-  for_each         = setunion(var.spec.cluster.admins, [azurerm_user_assigned_identity.cluster_admin.principal_id])
+  for_each         = local.cluster_admins
   group_object_id  = azuread_group.main.object_id
   member_object_id = each.value
 }
