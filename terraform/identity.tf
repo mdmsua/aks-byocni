@@ -46,7 +46,7 @@ resource "azuread_group" "main" {
 }
 
 resource "azuread_group_member" "main" {
-  for_each         = local.cluster_admins
+  count            = length(local.cluster_admins)
   group_object_id  = azuread_group.main.object_id
-  member_object_id = each.value
+  member_object_id = local.cluster_admins[count.index]
 }
