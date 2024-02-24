@@ -12,12 +12,13 @@ resource "azuread_group" "main" {
   mail_enabled               = false
   prevent_duplicate_names    = true
   security_enabled           = true
-  owners                     = var.spec.cluster.admins
-  members                    = var.spec.cluster.admins
+  owners                     = [data.azuread_client_config.main.object_id]
+}
 
-  lifecycle {
-    ignore_changes = [owners]
-  }
+resource "azuread_group_member" "main" {
+  for_each         = var.spec.cluster.admins
+  group_object_id  = azuread_group.main.object_id
+  member_object_id = each.value
 }
 
 resource "azurerm_resource_group" "main" {
