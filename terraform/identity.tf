@@ -46,7 +46,12 @@ resource "azuread_group" "main" {
 }
 
 resource "azuread_group_member" "main" {
-  count            = length(local.cluster_admins)
+  for_each         = var.spec.cluster.admins
   group_object_id  = azuread_group.main.object_id
-  member_object_id = local.cluster_admins[count.index]
+  member_object_id = each.value
+}
+
+resource "azuread_group_member" "cluster_admin_identity" {
+  group_object_id  = azuread_group.main.object_id
+  member_object_id = azurerm_user_assigned_identity.cluster_admin.principal_id
 }
