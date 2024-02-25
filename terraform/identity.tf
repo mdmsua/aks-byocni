@@ -1,9 +1,3 @@
-resource "azurerm_user_assigned_identity" "cluster_admin" {
-  name                = "${module.naming.user_assigned_identity.name}-cluster-admin"
-  resource_group_name = azurerm_resource_group.main.name
-  location            = azurerm_resource_group.main.location
-}
-
 resource "azurerm_user_assigned_identity" "cluster" {
   name                = "${module.naming.user_assigned_identity.name}-cluster"
   resource_group_name = azurerm_resource_group.main.name
@@ -53,5 +47,5 @@ resource "azuread_group_member" "main" {
 
 resource "azuread_group_member" "cluster_admin_identity" {
   group_object_id  = azuread_group.main.object_id
-  member_object_id = azurerm_user_assigned_identity.cluster_admin.principal_id
+  member_object_id = data.azurerm_user_assigned_identity.meta.principal_id
 }
