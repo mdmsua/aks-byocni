@@ -23,7 +23,11 @@ terraform {
 }
 
 provider "azurerm" {
-  features {}
+  features {
+    resource_group {
+      prevent_deletion_if_contains_resources = false
+    }
+  }
   tenant_id            = var.spec.tenant_id
   subscription_id      = var.spec.subscription_id
   use_cli              = false
