@@ -45,3 +45,44 @@ resource "azurerm_public_ip_prefix" "ipv6" {
   prefix_length       = 124
   zones               = var.spec.zones
 }
+
+resource "azurerm_network_security_group" "main" {
+  name                = module.naming.network_security_group.name
+  resource_group_name = azurerm_resource_group.main.name
+  location            = azurerm_resource_group.main.location
+
+  security_rule {
+    name                       = "AllowHttpIn"
+    access                     = "Allow"
+    direction                  = "Inbound"
+    source_address_prefix      = "Internet"
+    source_port_range          = "*"
+    destination_address_prefix = "VirtualNetwork"
+    destination_port_range     = "80"
+    protocol                   = "Tcp"
+    priority                   = 100
+  }
+
+  security_rule {
+    name                       = "AllowHttpsIn"
+    access                     = "Allow"
+    direction                  = "Inbound"
+    source_address_prefix      = "Internet"
+    source_port_range          = "*"
+    destination_address_prefix = "VirtualNetwork"
+    destination_port_range     = "443"
+    protocol                   = "Tcp"
+    priority                   = 110
+  }
+}
+
+resource "azurerm_subnet_network_security_group_association" "default" {
+  network_security_group_id = azurerm_network_security_group.main.id
+  subnet_id                 = azurerm_subnet.default.id
+}
+
+resource "azurerm_subnet_network_security_group_association" "main" {
+  for_each                  = var.spec.zones
+  network_security_group_id = azurerm_network_security_group.main.id
+  subnet_id                 = azurerm_subnet.main[each.value].id
+}
